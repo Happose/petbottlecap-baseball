@@ -565,7 +565,6 @@ function enableScroll() {
 
 // ===============================
 // プレイヤーリスト描画（PC + スマホ対応）
-// ===============================
 let playerListEventsInitialized = false;
 
 function renderPlayers(){
@@ -580,55 +579,56 @@ function renderPlayers(){
     li.dataset.id = p.id;
 
     // PCドラッグ
-li.draggable = true;
-li.addEventListener("dragstart", e=>{
-  li.classList.add("dragging");
-  e.dataTransfer.setData("text/plain", p.id);
-});
-li.addEventListener("dragend", ()=>{
-  li.classList.remove("dragging");
-});
+    li.draggable = true;
+    li.addEventListener("dragstart", e=>{
+      li.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", p.id);
+    });
+    li.addEventListener("dragend", ()=>{
+      li.classList.remove("dragging");
+    });
 
-// ▼ UIパーツ作成（ここで handle を li に追加する）
-const colorBox = document.createElement("div");
-colorBox.className = "player-color-box";
-colorBox.style.background = p.color;
+    // ▼ UIパーツ作成
+    const colorBox = document.createElement("div");
+    colorBox.className = "player-color-box";
+    colorBox.style.background = p.color;
 
-const colorBtn = document.createElement("button");
-colorBtn.textContent = "色";
-colorBtn.className = "small";
-colorBtn.style.marginLeft = "8px";
-colorBtn.onclick = ()=> openColorPicker(p.id, li);
+    const colorBtn = document.createElement("button");
+    colorBtn.textContent = "色";
+    colorBtn.className = "small";
+    colorBtn.style.marginLeft = "8px";
+    colorBtn.onclick = ()=> openColorPicker(p.id, li);
 
-const left = document.createElement("div");
-left.style.display = "flex";
-left.style.alignItems = "center";
+    const left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
 
-const handle = document.createElement("span");
-handle.className = "handle";
-handle.textContent = "≡";
+    const handle = document.createElement("span");
+    handle.className = "handle";
+    handle.textContent = "≡";
 
-const nameSpan = document.createElement("span");
-nameSpan.textContent = p.name;
-nameSpan.style.marginLeft = "6px";
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = p.name;
+    nameSpan.style.marginLeft = "6px";
 
-left.appendChild(handle);
-left.appendChild(colorBox);
-left.appendChild(nameSpan);
+    left.appendChild(handle);
+    left.appendChild(colorBox);
+    left.appendChild(nameSpan);
 
-const right = document.createElement("div");
-right.appendChild(colorBtn);
+    const right = document.createElement("div");
+    right.appendChild(colorBtn);
 
-li.appendChild(left);
-li.appendChild(right);
+    li.appendChild(left);
+    li.appendChild(right);
 
-// ▼ スマホドラッグ（ハンドルだけ）
-handle.addEventListener("touchstart", handleTouchStart, { passive:false });
-handle.addEventListener("touchmove", handleTouchMove, { passive:false });
-handle.addEventListener("touchend", handleTouchEnd);
+    // ▼ スマホドラッグ（ハンドルだけ）
+    handle.addEventListener("touchstart", handleTouchStart, { passive:false });
+    handle.addEventListener("touchmove", handleTouchMove, { passive:false });
+    handle.addEventListener("touchend", handleTouchEnd);
 
-
-      
+    // ★ ここを忘れていた：リストに追加
+    list.appendChild(li);
+  }); // ★ forEach をここで閉じる
 
   // PCドラッグイベント（初回のみ）
   if(!playerListEventsInitialized){
@@ -640,7 +640,6 @@ handle.addEventListener("touchend", handleTouchEnd);
   renderPitcherSelect();
   renderCurrentBatterBanner();
 }
-
 // PC用ドラッグオーバー
 function handlePlayerListDragOver(e){
   e.preventDefault();
