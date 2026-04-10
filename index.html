@@ -590,9 +590,12 @@ function renderPlayers(){
     });
 
     // スマホドラッグ
-    li.addEventListener("touchstart", handleTouchStart, { passive:false });
-    li.addEventListener("touchmove", handleTouchMove, { passive:false });
-    li.addEventListener("touchend", handleTouchEnd);
+    // スマホドラッグ（ハンドルだけ）
+const handle = li.querySelector(".handle");
+handle.addEventListener("touchstart", handleTouchStart, { passive:false });
+handle.addEventListener("touchmove", handleTouchMove, { passive:false });
+handle.addEventListener("touchend", handleTouchEnd);
+
 
     const colorBox = document.createElement("div");
     colorBox.className = "player-color-box";
