@@ -411,7 +411,23 @@ th.name,td.name{
   <div id="log" class="log"></div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCBVBV3MUEkQ1349Pp77Sg9s3UNS5ULVkk",
+  authDomain: "bottlecapbaseball.firebaseapp.com",
+  projectId: "bottlecapbaseball",
+  storageBucket: "bottlecapbaseball.firebasestorage.app",
+  messagingSenderId: "249950950895",
+  appId: "1:249950950895:web:8365f88e6339d17780d21a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const DATA_DOC = doc(db, "cap_baseball", "seasonData");
+
 // 成績手入力編集
 function editStat(playerId, game, category, key){
   const p = state.players.find(pl=>pl.id === playerId);
@@ -429,17 +445,18 @@ function editStat(playerId, game, category, key){
   renderStats();
 }
 
-const STORAGE_KEY = "cap_baseball_season_v3";
-
-let state = {
-  players: [], // {id,name,order,color, batting[10],battingExtra[10],pitching[10],pitchingExtra[10],points[10],rank[10]}
-  currentGame: 0,
-  logs: Array.from({length:10}, ()=>[]),
-  currentBatterId: null,
-  currentPitcherId: null
-};
-
+let state = createInitialState();
 let currentStatMode = "normal"; // normal or extra
+
+function createInitialState() {
+  return {
+    players: [],
+    currentGame: 0,
+    logs: Array.from({length:10}, ()=>[]),
+    currentBatterId: null,
+    currentPitcherId: null
+  };
+}
 
 function createEmptyBatting(){
   return { hit:0, hr:0, so:0, bb:0, out:0, ab:0 };
@@ -449,16 +466,19 @@ function createEmptyPitching(){
   return { ra:0, pit_out:0, pit_hit:0, pit_so:0, pit_ab:0 };
 }
 
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function saveState(){
+  try{
+    await setDoc(DATA_DOC, state);
+  }catch(e){
+    console.error("Firestore 保存エラー:", e);
+  }
 }
 
-function loadState(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(!raw) return;
+async function loadState(){
   try{
-    const data = JSON.parse(raw);
-    if(data && typeof data === "object"){
+    const snap = await getDoc(DATA_DOC);
+    if(snap.exists()){
+      const data = snap.data();
       state.players = data.players || [];
       state.currentGame = data.currentGame || 0;
       state.logs = data.logs || Array.from({length:10}, ()=>[]);
@@ -484,9 +504,12 @@ function loadState(){
           p.color = "#757575";
         }
       });
+    }else{
+      state = createInitialState();
+      await saveState();
     }
   }catch(e){
-    console.error(e);
+    console.error("Firestore 読み込みエラー:", e);
   }
 }
 
@@ -679,10 +702,7 @@ function getDragAfterElement(container, y){
 // スマホ用ドラッグ処理
 function handleTouchStart(e){
   e.preventDefault();
-
-  // ★ 修正：ハンドル(span) → 親の li をドラッグ対象にする
   touchDraggingEl = e.currentTarget.closest(".player-item");
-
   touchStartY = e.touches[0].clientY;
   currentY = touchStartY;
   isTouchDragging = true;
@@ -1467,16 +1487,17 @@ function openFinalPDFView(){
   win.document.close();
 }
 
-function resetData(){
+async function resetData(){
   if(!confirm("本当に全データをリセットしますか？\nこの操作は元に戻せません。")){
     return;
   }
-  localStorage.removeItem(STORAGE_KEY);
+  state = createInitialState();
+  await saveState();
   location.reload();
 }
 
-function init(){
-  loadState();
+async function init(){
+  await loadState();
   initGameSelect();
   renderAll();
 }
