@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<script>
+  const pass = prompt("パスワードを入力してください");
+  if(pass !== "さんぽぶ"){
+    alert("パスワードが違います");
+    location.href = "about:blank";
+  }
+</script>
+
+
+
+<meta charset="UTF-8">
+<title>キャップ野球 記録アプリ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family:sans-serif;
+  margin:0;
+  padding:10px;
+  background:#f5f5f5;
+}
+
+/* カード */
+.card{
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* ▼ 現在の打者帯（選手カラーで変わる） */
+#currentBatterBanner{
+  width:100%;
+  color:white;
+  font-size:26px;
+  font-weight:bold;
+  text-align:center;
+  padding:14px 0;
+  border-radius:10px;
+  margin-bottom:10px;
+  background:#4CAF50; /* 初期色 */
+}
+
+/* ▼ 現在の投手帯（青固定） */
+#currentPitcherBanner{
+  width:100%;
+  background:#1E88E5;
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+  text-align:center;
+  padding:8px 0;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+/* ボタン色 */
+.result-hit{background:#4CAF50;color:white;}
+.result-hr{background:#E53935;color:white;}
+.result-so{background:#1E88E5;color:white;}
+.result-bb{background:#FB8C00;color:white;}
+.result-out{background:#757575;color:white;}
+.result-ra{background:#8E24AA;color:white;}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin:4px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+button.small{
+  padding:6px 8px;
+  font-size:12px;
+}
+
+input,select{
+  padding:8px;
+  margin:4px 0;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.row > *{
+  flex:1;
+}
+
+/* テーブル */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+
+th,td{
+  border-bottom:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+
+th.name,td.name{
+  text-align:left;
+}
+
+/* ▼ 打順リスト（選手カラー反映） */
+.player-list{
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+
+.player-item{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  margin-bottom:6px;
+  background:#fafafa;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.player-color-box{
+  width:18px;
+  height:18px;
+  border-radius:4px;
+  margin-right:8px;
+  border:1px solid #0003;
+}
+
+.player-item.dragging{
+  opacity:0.5;
+}
+
+.handle{
+  cursor:grab;
+  font-size:18px;
+  margin-right:8px;
+}
+
+/* ログ */
+.log{
+  max-height:200px;
+  overflow-y:auto;
+  font-size:12px;
+  background:#fafafa;
+  border-radius:8px;
+  padding:6px;
+  border:1px solid #ddd;
+}
+
+.log-item{
+  margin-bottom:4px;
+}
+
+.badge{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:999px;
+  font-size:10px;
+  background:#eee;
+  margin-left:4px;
+}
+
+.badge.extra{
+  background:#1976d2;
+  color:white;
+}
+
+/* タイトル獲得者 */
+.title-winner{
+  background:#fff8e1;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+  border:1px solid #f0d98a;
+}
+
+/* ▼ カラー選択ポップアップ */
+.color-picker{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+
+.color-option{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:2px solid #0003;
+  cursor:pointer;
+}
+.pdf-view {
+  font-family: sans-serif;
+  padding: 20px;
+  max-width: 900px;
+  margin: auto;
+  background: white;
+}
+
+.pdf-view h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.pdf-section {
+  margin-bottom: 30px;
+}
+
+.pdf-section table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pdf-section th,
+.pdf-section td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: center;
+}
+
+</style>
+</head>
+<body>
+<h2>キャップ野球 記録</h2>
+
+<!-- ▼ 現在の打者（選手カラーで変わる大きな帯） -->
+<div id="currentBatterBanner" data-id="">現在の打者：未設定</div>
+
+<!-- ▼ 現在の投手（青帯） -->
+<div id="currentPitcherBanner">投手：未選択</div>
+
+<!-- ▼ 打席入力カード（位置を上に移動） -->
+<div class="card" id="atbatCard">
+  <h3>打席入力</h3>
+
+  <div class="row">
+    <div>
+      <label>回</label>
+      <select id="inningSelect">
+        <option value="1">1回</option>
+        <option value="2">2回</option>
+        <option value="3">3回</option>
+        <option value="EX">延長</option>
+      </select>
+    </div>
+
+    <div style="flex:0 0 100%">
+      <label>
+        <input type="checkbox" id="isExtra">
+        延長戦（成績に含めない）
+      </label>
+    </div>
+  </div>
+
+  <!-- 打者ローテーション -->
+  <div class="row" style="margin-top:6px;">
+    <button class="small" onclick="nextBatter()">次の打者へ</button>
+  </div>
+
+  <!-- 投手選択 -->
+  <div class="row" style="margin-top:6px;">
+    <div>
+      <label>投手</label>
+      <select id="pitcherSelect" onchange="updatePitcherBanner()"></select>
+    </div>
+  </div>
+
+  <!-- 結果ボタン -->
+  <div style="margin-top:10px;">
+    <button class="result-hit" onclick="recordAtBat('hit')">安打</button>
+    <button class="result-hr" onclick="recordAtBat('hr')">本塁打</button>
+    <button class="result-so" onclick="recordAtBat('so')">三振</button>
+    <button class="result-bb" onclick="recordAtBat('bb')">四死球</button>
+    <button class="result-out" onclick="recordAtBat('out')">アウト</button>
+  </div>
+
+  <div style="margin-top:4px;">
+    <button class="result-ra" onclick="addRun()">失点 +1（投手）</button>
+  </div>
+</div>
+
+<!-- ▼ 試合選択 -->
+<div class="card">
+  <h3>試合選択（全10試合）</h3>
+  <select id="gameSelect"></select>
+  <p class="muted">※ 試合ごとに成績・ログが保存されます</p>
+</div>
+<div class="card">
+  <button onclick="openGamePDFView()" 
+    style="width:100%;padding:12px;background:#1976d2;color:white;border-radius:8px;">
+    この試合のPDF風ビューを開く
+  </button>
+</div>
+
+<div class="card">
+  <button onclick="openFinalPDFView()" 
+    style="width:100%;padding:12px;background:#388e3c;color:white;border-radius:8px;">
+    最終記録のPDF風ビューを開く
+  </button>
+</div>
+
+<div class="card">
+  <h3>データ管理</h3>
+  <button onclick="resetData()" style="background:#d32f2f;color:white;">データリセット</button>
+</div>
+
+<!-- ▼ プレイヤー追加 & 打順設定 -->
+<div class="card">
+  <h3>プレイヤー追加 & 打順設定</h3>
+
+  <div class="row">
+    <input id="playerName" placeholder="名前を入力">
+    <button class="small" onclick="addPlayer()">追加</button>
+  </div>
+
+  <p class="muted">※ ドラッグして打順を並べ替えできます</p>
+
+  <ul id="playerList" class="player-list"></ul>
+</div>
+
+<!-- ▼ 打撃成績（この試合） -->
+<div class="card">
+  <h3>打撃成績（この試合）</h3>
+  <table>
+    <thead>
+      <tr>
+        <th class="name">名前</th>
+        <th>安打</th>
+        <th>本塁打</th>
+        <th>三振</th>
+        <th>四死球</th>
+        <th>アウト</th>
+        <th>打率</th>
+      </tr>
+    </thead>
+    <tbody id="battingBody"></tbody>
+  </table>
+</div>
+
+<!-- ▼ 投手成績（この試合） -->
+<div class="card">
+  <h3>投手成績（この試合）</h3>
+  <table>
+    <thead>
+      <tr>
+        <th class="name">名前</th>
+        <th>被安打</th>
+        <th>奪三振</th>
+        <th>失点</th>
+        <th>投球回</th>
+        <th>被打率</th>
+        <th>防御率</th>
+      </tr>
+    </thead>
+    <tbody id="pitchingBody"></tbody>
+  </table>
+</div>
+
+<!-- ▼ シーズン成績 -->
+<div class="card">
+  <h3>シーズン成績（全10試合）</h3>
+  <table>
+    <thead>
+      <tr>
+        <th class="name">名前</th>
+        <th>総安打</th>
+        <th>総本塁打</th>
+        <th>総三振</th>
+        <th>総四死球</th>
+        <th>総打率</th>
+        <th>総失点</th>
+        <th>総奪三振</th>
+        <th>総防御率</th>
+        <th>勝ち点</th>
+      </tr>
+    </thead>
+    <tbody id="seasonBody"></tbody>
+  </table>
+</div>
+
+<!-- ▼ 優勝者カード（勝ち点から自動判定） -->
+<div class="card">
+  <h3>🏆 優勝者（シーズン）</h3>
+  <div id="championArea"></div>
+</div>
+
+<!-- ▼ タイトル獲得者 -->
+<div class="card">
+  <h3>タイトル獲得者（シーズン）</h3>
+  <div id="titleWinners"></div>
+</div>
+
+<!-- ▼ 勝ち点入力 -->
+<div class="card">
+  <h3>順位入力（この試合）</h3>
+  <div id="rankArea"></div>
+</div>
+
+<!-- ▼ 打席ログ -->
+<div class="card">
+  <h3>打席ログ（この試合）</h3>
+  <div id="log" class="log"></div>
+</div>
+<script>
+// ===============================
+//  成績手入力編集
+// ===============================
+function editStat(playerId, game, category, key){
+  const p = state.players.find(pl=>pl.id === playerId);
+  if(!p) return;
+
+  const current = p[category][game][key];
+  const input = prompt("新しい値を入力してください", current);
+
+  if(input === null) return; // キャンセル
+
+  const num = Number(input);
+  if(isNaN(num) || num < 0){
+    alert("0以上の数字を入力してください");
+    return;
+  }
+
+  p[category][game][key] = num;
+
+  saveState();
+  renderStats();
+}
+
+// ===============================
+//  データ構造（color を追加）
+// ===============================
+const STORAGE_KEY = "cap_baseball_season_v3";
+
+let state = {
+  players: [],            // {id,name,order,color, batting[10], pitching[10], points[10], rank[10]}
+  currentGame: 0,         // 0〜9
+  logs: Array.from({length:10}, ()=>[])
+};
+
+// -------------------------------
+//  空の打撃データ
+// -------------------------------
+function createEmptyBatting(){
+  return {
+    hit:0,
+    hr:0,
+    so:0,
+    bb:0,
+    out:0,
+    ab:0
+  };
+}
+
+// -------------------------------
+//  空の投手データ
+// -------------------------------
+function createEmptyPitching(){
+  return {
+    ra:0,
+    pit_out:0,
+    pit_hit:0,
+    pit_so:0,
+    pit_ab:0
+  };
+}
+
+// ===============================
+//  保存・読み込み
+// ===============================
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return;
+
+  try{
+    const data = JSON.parse(raw);
+    if(data && typeof data === "object"){
+      state.players = data.players || [];
+      state.currentGame = data.currentGame || 0;
+      state.logs = data.logs || Array.from({length:10}, ()=>[]);
+    }
+  }catch(e){
+    console.error(e);
+  }
+}
+
+// ===============================
+//  プレイヤー追加（color 初期値つき）
+// ===============================
+function addPlayer(){
+  const name = document.getElementById("playerName").value.trim();
+  if(!name) return;
+
+  const id = Date.now() + "_" + Math.random().toString(16).slice(2);
+
+  const batting = Array.from({length:10}, ()=>createEmptyBatting());
+  const pitching = Array.from({length:10}, ()=>createEmptyPitching());
+  const points = Array.from({length:10}, ()=>0);
+  const rank = Array.from({length:10}, ()=>"");
+
+  // ▼ 初期カラー（グレー）
+  const defaultColor = "#757575";
+
+  state.players.push({
+    id,
+    name,
+    order: state.players.length,
+    color: defaultColor,
+    batting,
+    pitching,
+    points,
+    rank
+  });
+
+  document.getElementById("playerName").value = "";
+  saveState();
+  renderAll();
+}
+function resetData(){
+  if(!confirm("本当に全データをリセットしますか？\nこの操作は元に戻せません。")){
+    return;
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+</script>
+<script>
+// ===============================
+//  打順リスト（ドラッグ & 色設定）
+// ===============================
+function renderPlayers(){
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
+
+  state.players.sort((a,b)=>a.order - b.order);
+
+  state.players.forEach(p=>{
+    const li = document.createElement("li");
+    li.className = "player-item";
+    li.draggable = true;
+    li.dataset.id = p.id;
+
+    // ▼ 色ボックス
+    const colorBox = document.createElement("div");
+    colorBox.className = "player-color-box";
+    colorBox.style.background = p.color;
+
+    // ▼ 色変更ボタン
+    const colorBtn = document.createElement("button");
+    colorBtn.textContent = "色";
+    colorBtn.className = "small";
+    colorBtn.style.marginLeft = "8px";
+    colorBtn.onclick = ()=> openColorPicker(p.id, li);
+
+    // ▼ 左側（ドラッグハンドル + 色 + 名前）
+    const left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
+
+    const handle = document.createElement("span");
+    handle.className = "handle";
+    handle.textContent = "≡";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = p.name;
+    nameSpan.style.marginLeft = "6px";
+
+    left.appendChild(handle);
+    left.appendChild(colorBox);
+    left.appendChild(nameSpan);
+
+    // ▼ 右側（色ボタン）
+    const right = document.createElement("div");
+    right.appendChild(colorBtn);
+
+    li.appendChild(left);
+    li.appendChild(right);
+
+    list.appendChild(li);
+
+    // ドラッグ開始
+    li.addEventListener("dragstart", e=>{
+      li.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", p.id);
+    });
+
+    // ドラッグ終了
+    li.addEventListener("dragend", ()=>{
+      li.classList.remove("dragging");
+    });
+  });
+
+  // ドラッグ位置判定
+  list.addEventListener("dragover", e=>{
+    e.preventDefault();
+    const dragging = document.querySelector(".player-item.dragging");
+    if(!dragging) return;
+
+    const after = getDragAfterElement(list, e.clientY);
+    if(after == null){
+      list.appendChild(dragging);
+    }else{
+      list.insertBefore(dragging, after);
+    }
+  });
+
+  // ドロップ後に order を更新
+  list.addEventListener("drop", ()=>{
+    const items = Array.from(list.querySelectorAll(".player-item"));
+    items.forEach((item, index)=>{
+      const id = item.dataset.id;
+      const p = state.players.find(pl=>pl.id === id);
+      if(p) p.order = index;
+    });
+    saveState();
+    renderPitcherSelect();
+    renderCurrentBatterBanner();
+  });
+
+  renderPitcherSelect();
+  renderCurrentBatterBanner();
+}
+
+// ===============================
+//  ドラッグ位置計算
+// ===============================
+function getDragAfterElement(container, y){
+  const els = [...container.querySelectorAll(".player-item:not(.dragging)")];
+  return els.reduce((closest, child)=>{
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height/2;
+    if(offset < 0 && offset > closest.offset){
+      return {offset, element:child};
+    }else{
+      return closest;
+    }
+  }, {offset:-Infinity}).element;
+}
+
+// ===============================
+//  カラー選択ポップアップ
+// ===============================
+const COLOR_LIST = [
+  "#E53935", "#1E88E5", "#43A047", "#FDD835",
+  "#FB8C00", "#8E24AA", "#EC407A", "#26C6DA",
+  "#6D4C41", "#757575", "#000000", "#FFFFFF"
+];
+
+function openColorPicker(playerId, parentLi){
+  // すでに表示中なら削除
+  const old = parentLi.querySelector(".color-picker");
+  if(old){
+    old.remove();
+    return;
+  }
+
+  const picker = document.createElement("div");
+  picker.className = "color-picker";
+
+  COLOR_LIST.forEach(color=>{
+    const opt = document.createElement("div");
+    opt.className = "color-option";
+    opt.style.background = color;
+    opt.onclick = ()=>{
+      setPlayerColor(playerId, color);
+      picker.remove();
+    };
+    picker.appendChild(opt);
+  });
+
+  parentLi.appendChild(picker);
+}
+
+// ===============================
+//  色設定の保存
+// ===============================
+function setPlayerColor(playerId, color){
+  const p = state.players.find(pl=>pl.id === playerId);
+  if(!p) return;
+
+  p.color = color;
+  saveState();
+
+  // 打者帯がその選手なら色変更
+  const batterId = document.getElementById("currentBatterBanner").dataset.id;
+  if(batterId === playerId){
+    document.getElementById("currentBatterBanner").style.background = color;
+  }
+
+  renderPlayers();
+}
+// ===============================
+//  投手セレクトの描画
+// ===============================
+function renderPitcherSelect(){
+  const sel = document.getElementById("pitcherSelect");
+  if(!sel) return;
+
+  sel.innerHTML = "";
+
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "投手を選択";
+  sel.appendChild(emptyOpt);
+
+  const playersSorted = [...state.players].sort((a,b)=>a.order - b.order);
+  playersSorted.forEach(p=>{
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+}
+
+</script>
+<script>
+// ===============================
+//  打者帯の更新（選手カラー反映）
+// ===============================
+function renderCurrentBatterBanner(){
+  const banner = document.getElementById("currentBatterBanner");
+  const id = banner.dataset.id;
+
+  if(!id){
+    if(state.players.length){
+      const p = state.players.sort((a,b)=>a.order-b.order)[0];
+      banner.textContent = `現在の打者：${p.name}`;
+      banner.dataset.id = p.id;
+      banner.style.background = p.color;
+    }else{
+      banner.textContent = "現在の打者：未設定";
+      banner.style.background = "#4CAF50";
+    }
+    return;
+  }
+
+  const p = state.players.find(pl=>pl.id === id);
+  if(p){
+    banner.textContent = `現在の打者：${p.name}`;
+    banner.style.background = p.color;
+  }else{
+    banner.textContent = "現在の打者：未設定";
+    banner.style.background = "#4CAF50";
+  }
+}
+
+// ===============================
+//  次の打者へ（色も更新）
+// ===============================
+function nextBatter(){
+  if(state.players.length === 0) return;
+
+  state.players.sort((a,b)=>a.order - b.order);
+
+  const banner = document.getElementById("currentBatterBanner");
+  const currentId = banner.dataset.id || null;
+
+  let idx = state.players.findIndex(p=>p.id === currentId);
+
+  if(idx === -1){
+    idx = 0;
+  }else{
+    idx = (idx + 1) % state.players.length;
+  }
+
+  const p = state.players[idx];
+  banner.textContent = `現在の打者：${p.name}`;
+  banner.dataset.id = p.id;
+  banner.style.background = p.color;
+}
+
+// ===============================
+//  投手帯の更新
+// ===============================
+function updatePitcherBanner(){
+  const sel = document.getElementById("pitcherSelect");
+  const id = sel.value;
+  const banner = document.getElementById("currentPitcherBanner");
+
+  if(!id){
+    banner.textContent = "投手：未選択";
+    return;
+  }
+
+  const p = state.players.find(pl=>pl.id === id);
+  if(p){
+    banner.textContent = `投手：${p.name}`;
+  }
+}
+
+// ===============================
+//  打席入力（安打・本塁打・三振・四死球・アウト）
+// ===============================
+function recordAtBat(type){
+  const game = state.currentGame;
+  const inning = document.getElementById("inningSelect").value;
+  const isExtra = document.getElementById("isExtra").checked;
+
+  const batterId = document.getElementById("currentBatterBanner").dataset.id;
+  const pitcherId = document.getElementById("pitcherSelect").value;
+
+  if(!batterId){
+    alert("打者が設定されていません。「次の打者へ」を押してください。");
+    return;
+  }
+  if(!pitcherId){
+    alert("投手を選択してください。");
+    return;
+  }
+  if(batterId === pitcherId){
+    alert("打者と投手が同じ人物です。投手を変更してください。");
+    return;
+  }
+
+  const batter = state.players.find(p=>p.id === batterId);
+  const pitcher = state.players.find(p=>p.id === pitcherId);
+
+  const bStat = batter.batting[game];
+  const pStat = pitcher.pitching[game];
+
+  // ログ作成
+  const logItem = {
+    time: new Date().toISOString(),
+    inning,
+    extra: isExtra,
+    batter: batter.name,
+    pitcher: pitcher.name,
+    type,
+    note: ""
+  };
+
+  // 延長戦は成績に含めない
+  if(!isExtra){
+    // 打者側
+    if(type === "hit"){
+      bStat.hit++;
+      bStat.ab++;
+      pStat.pit_hit++;
+      pStat.pit_ab++;
+    }
+    else if(type === "hr"){
+      bStat.hr++;
+      bStat.hit++;
+      bStat.ab++;
+      pStat.pit_hit++;
+      pStat.pit_ab++;
+    }
+    else if(type === "so"){
+      bStat.so++;
+      bStat.ab++;
+      pStat.pit_so++;
+      pStat.pit_out++;
+      pStat.pit_ab++;
+    }
+    else if(type === "bb"){
+      bStat.bb++;
+    }
+    else if(type === "out"){
+      bStat.out++;
+      bStat.ab++;
+      pStat.pit_out++;
+      pStat.pit_ab++;
+    }
+  }else{
+    logItem.note = "延長（成績外）";
+  }
+
+  state.logs[game].unshift(logItem);
+  saveState();
+  renderStats();
+  renderLog();
+}
+
+// ===============================
+//  失点 +1（投手）
+// ===============================
+function addRun(){
+  const game = state.currentGame;
+  const inning = document.getElementById("inningSelect").value;
+  const isExtra = document.getElementById("isExtra").checked;
+
+  const pitcherId = document.getElementById("pitcherSelect").value;
+  if(!pitcherId){
+    alert("投手を選択してください。");
+    return;
+  }
+
+  const pitcher = state.players.find(p=>p.id === pitcherId);
+  const pStat = pitcher.pitching[game];
+
+  const logItem = {
+    time: new Date().toISOString(),
+    inning,
+    extra: isExtra,
+    batter: "",
+    pitcher: pitcher.name,
+    type: "ra",
+    note: isExtra ? "延長（成績外）" : ""
+  };
+
+  if(!isExtra){
+    pStat.ra++;
+  }
+
+  state.logs[game].unshift(logItem);
+  saveState();
+  renderStats();
+  renderLog();
+}
+</script>
+<script>
+// ===============================
+//  成績描画（打撃・投手・シーズン）
+// ===============================
+function renderStats(){
+  const game = state.currentGame;
+
+  // -------------------------
+  // 打撃成績（この試合）
+  // -------------------------
+  const bBody = document.getElementById("battingBody");
+  bBody.innerHTML = "";
+
+  state.players.sort((a,b)=>a.order - b.order);
+  state.players.forEach(p=>{
+    const s = p.batting[game];
+    const avg = s.ab ? (s.hit / s.ab).toFixed(3) : "0.000";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+  <td class="name">${p.name}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'batting', 'hit')">${s.hit}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'batting', 'hr')">${s.hr}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'batting', 'so')">${s.so}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'batting', 'bb')">${s.bb}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'batting', 'out')">${s.out}</td>
+  <td>${avg}</td>
+`;
+
+    bBody.appendChild(tr);
+  });
+
+  // -------------------------
+  // 投手成績（この試合）
+  // -------------------------
+  const pBody = document.getElementById("pitchingBody");
+  pBody.innerHTML = "";
+
+  state.players.forEach(p=>{
+    const s = p.pitching[game];
+    const innings = s.pit_out / 3;
+    const era = innings > 0 ? (s.ra * 3 / innings).toFixed(2) : "0.00";
+    const oppAvg = s.pit_ab ? (s.pit_hit / s.pit_ab).toFixed(3) : "0.000";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+  <td class="name">${p.name}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'pitching', 'pit_hit')">${s.pit_hit}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'pitching', 'pit_so')">${s.pit_so}</td>
+  <td onclick="editStat('${p.id}', ${game}, 'pitching', 'ra')">${s.ra}</td>
+  <td>${innings.toFixed(1)}</td>
+  <td>${oppAvg}</td>
+  <td>${era}</td>
+`;
+
+    pBody.appendChild(tr);
+  });
+
+  renderSeason();
+  renderChampion();
+  renderRankArea();
+  renderTitleWinners();
+}
+
+// ===============================
+//  シーズン成績（全10試合）
+// ===============================
+function renderSeason(){
+  const tbody = document.getElementById("seasonBody");
+  tbody.innerHTML = "";
+
+  state.players.sort((a,b)=>a.order - b.order);
+
+  state.players.forEach(p=>{
+    let totalHit=0,totalHr=0,totalSo=0,totalBb=0,totalAb=0;
+    let totalRa=0,totalPitOut=0,totalPitHit=0,totalPitAb=0,totalPitSo=0;
+    let totalPoints=0;
+
+    for(let g=0;g<10;g++){
+      const b = p.batting[g];
+      const pt = p.pitching[g];
+
+      totalHit += b.hit;
+      totalHr += b.hr;
+      totalSo += b.so;
+      totalBb += b.bb;
+      totalAb += b.ab;
+
+      totalRa += pt.ra;
+      totalPitOut += pt.pit_out;
+      totalPitHit += pt.pit_hit;
+      totalPitAb += pt.pit_ab;
+      totalPitSo += pt.pit_so;
+
+      totalPoints += p.points[g] || 0;
+    }
+
+    const avg = totalAb ? (totalHit / totalAb).toFixed(3) : "0.000";
+    const innings = totalPitOut / 3;
+    const era = innings > 0 ? (totalRa * 3 / innings).toFixed(2) : "0.00";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="name">${p.name}</td>
+      <td>${totalHit}</td>
+      <td>${totalHr}</td>
+      <td>${totalSo}</td>
+      <td>${totalBb}</td>
+      <td>${avg}</td>
+      <td>${totalRa}</td>
+      <td>${totalPitSo}</td>
+      <td>${era}</td>
+      <td>${totalPoints.toFixed(1)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===============================
+//  優勝者（勝ち点トップ）
+// ===============================
+function renderChampion(){
+  const div = document.getElementById("championArea");
+  div.innerHTML = "";
+
+  if(state.players.length === 0) return;
+
+  // 勝ち点集計
+  let list = state.players.map(p=>{
+    let total = 0;
+    for(let g=0;g<10;g++){
+      total += p.points[g] || 0;
+    }
+    return {name:p.name, points:total};
+  });
+
+  // 最大勝ち点
+  const maxPt = Math.max(...list.map(x=>x.points));
+
+  // 優勝者（複数可）
+  const winners = list.filter(x=>x.points === maxPt);
+
+  const names = winners.map(w=>w.name).join("・");
+
+  div.innerHTML = `
+    <div class="title-winner">
+      <b>🏆 優勝：</b> ${names}（勝ち点 ${maxPt.toFixed(1)}）
+    </div>
+  `;
+}
+
+// ===============================
+//  タイトル獲得者（安打王・本塁打王・奪三振王・打率王）
+// ===============================
+function renderTitleWinners(){
+  const div = document.getElementById("titleWinners");
+  div.innerHTML = "";
+  if(state.players.length === 0) return;
+
+  let stats = state.players.map(p=>{
+    let totalHit=0,totalHr=0,totalSo=0,totalAb=0,totalPitSo=0;
+
+    for(let g=0;g<10;g++){
+      const b = p.batting[g];
+      const pt = p.pitching[g];
+      totalHit += b.hit;
+      totalHr += b.hr;
+      totalSo += b.so;
+      totalAb += b.ab;
+      totalPitSo += pt.pit_so;
+    }
+
+    return {
+      name: p.name,
+      hit: totalHit,
+      hr: totalHr,
+      avg: totalAb ? totalHit / totalAb : 0,
+      pitSo: totalPitSo
+    };
+  });
+
+  function topList(key){
+    const max = Math.max(...stats.map(s=>s[key]));
+    return stats.filter(s=>s[key] === max);
+  }
+
+  const hitKings = topList("hit");
+  const hrKings = topList("hr");
+  const soKings = topList("pitSo");
+  const avgKings = topList("avg");
+
+  function names(list){ return list.map(s=>s.name).join("・"); }
+
+  div.innerHTML = `
+    <div class="title-winner"><b>安打王：</b> ${names(hitKings)}</div>
+    <div class="title-winner"><b>本塁打王：</b> ${names(hrKings)}</div>
+    <div class="title-winner"><b>最多奪三振：</b> ${names(soKings)}</div>
+    <div class="title-winner"><b>打率王：</b> ${names(avgKings)}</div>
+  `;
+}
+</script>
+<script>
+// ===============================
+//  勝ち点入力エリア
+// ===============================
+function renderRankArea(){
+  const container = document.getElementById("rankArea");
+  container.innerHTML = "";
+
+  if(state.players.length === 0) return;
+
+  const game = state.currentGame;
+  const n = state.players.length;
+
+  const table = document.createElement("table");
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th class="name">名前</th>
+        <th>順位</th>
+        <th>勝ち点</th>
+      </tr>
+    </thead>
+  `;
+
+  const tbody = document.createElement("tbody");
+
+  state.players.forEach(p=>{
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.className = "name";
+    tdName.textContent = p.name;
+
+    const tdRank = document.createElement("td");
+    const sel = document.createElement("select");
+    sel.innerHTML = "<option value=''>-</option>";
+
+    for(let r=1;r<=n;r++){
+      const opt = document.createElement("option");
+      opt.value = r;
+      opt.textContent = `${r}位`;
+      sel.appendChild(opt);
+    }
+
+    sel.value = p.rank[game] || "";
+    sel.onchange = ()=>{
+      p.rank[game] = sel.value ? parseInt(sel.value,10) : "";
+      updatePointsForGame(game);
+      saveState();
+      renderSeason();
+      renderChampion();
+      renderRankArea();
+      renderTitleWinners();
+    };
+
+    tdRank.appendChild(sel);
+
+    const tdPoint = document.createElement("td");
+    tdPoint.textContent = p.points[game] ? p.points[game].toFixed(1) : "0.0";
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdRank);
+    tr.appendChild(tdPoint);
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// ===============================
+//  勝ち点計算
+// ===============================
+function updatePointsForGame(game){
+  const n = state.players.length;
+
+  state.players.forEach(p=>{
+    const rank = p.rank[game];
+    let pt = 0;
+
+    if(rank){
+      if(n === 3){
+        pt = [3,1,0][rank-1];
+      }else if(n === 4){
+        pt = [3,2,1,0][rank-1];
+      }else if(n === 5){
+        pt = [3,1.5,1,0.5,0][rank-1];
+      }
+    }
+
+    p.points[game] = pt;
+  });
+}
+
+// ===============================
+//  打席ログの描画
+// ===============================
+function renderLog(){
+  const game = state.currentGame;
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML = "";
+
+  const logs = state.logs[game];
+  if(!logs || logs.length === 0){
+    logDiv.textContent = "まだ記録はありません。";
+    return;
+  }
+
+  logs.forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "log-item";
+
+    const inningLabel = item.inning === "EX" ? "延長" : `${item.inning}回`;
+
+    let text = `[${inningLabel}] `;
+
+    if(item.type === "ra"){
+      text += `投手: ${item.pitcher} → 失点 +1`;
+    }else{
+      text += `打者: ${item.batter} / 投手: ${item.pitcher} → ${typeLabel(item.type)}`;
+    }
+
+    div.textContent = text;
+
+    if(item.extra){
+      const b = document.createElement("span");
+      b.className = "badge extra";
+      b.textContent = "延長（成績外）";
+      div.appendChild(b);
+    }
+
+    logDiv.appendChild(div);
+  });
+}
+
+// ===============================
+//  種類ラベル
+// ===============================
+function typeLabel(t){
+  switch(t){
+    case "hit": return "安打";
+    case "hr": return "本塁打";
+    case "so": return "三振";
+    case "bb": return "四死球";
+    case "out": return "アウト";
+    default: return t;
+  }
+}
+
+// ===============================
+//  全体描画
+// ===============================
+function renderAll(){
+  initGameSelect();
+  renderPlayers();
+  renderStats();
+  renderChampion();
+  renderLog();
+  renderTitleWinners();
+}
+
+// ===============================
+//  試合選択の初期化
+// ===============================
+function initGameSelect(){
+  const sel = document.getElementById("gameSelect");
+  sel.innerHTML = "";
+  for(let i=0;i<10;i++){
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = `第${i+1}試合`;
+    sel.appendChild(opt);
+  }
+  sel.value = state.currentGame;
+
+  sel.onchange = ()=>{
+    state.currentGame = parseInt(sel.value,10);
+    saveState();
+    renderAll();
+  };
+}
+
+// ===============================
+//  初期化
+// ===============================
+function init(){
+  loadState();
+  initGameSelect();
+  renderAll();
+}
+function openGamePDFView(){
+  const game = state.currentGame;
+
+  // HTML生成
+  let html = `
+    <html>
+    <head>
+      <title>試合PDFビュー</title>
+      <style>${document.querySelector("style").innerHTML}</style>
+    </head>
+    <body class="pdf-view">
+      <h2>第${game+1}試合 記録</h2>
+  `;
+
+  // 打撃成績
+  html += `<div class="pdf-section"><h3>打撃成績（この試合）</h3>`;
+  html += document.querySelector("#battingBody").parentElement.parentElement.outerHTML;
+  html += `</div>`;
+
+  // 投手成績
+  html += `<div class="pdf-section"><h3>投手成績（この試合）</h3>`;
+  html += document.querySelector("#pitchingBody").parentElement.parentElement.outerHTML;
+  html += `</div>`;
+
+  // シーズン成績
+  html += `<div class="pdf-section"><h3>シーズン成績（全10試合）</h3>`;
+  html += document.querySelector("#seasonBody").parentElement.parentElement.outerHTML;
+  html += `</div>`;
+
+  html += `</body></html>`;
+
+  // 新しいタブで開く
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+}
+function openFinalPDFView(){
+  let html = `
+    <html>
+    <head>
+      <title>最終記録PDFビュー</title>
+      <style>${document.querySelector("style").innerHTML}</style>
+    </head>
+    <body class="pdf-view">
+      <h2>シーズン最終記録</h2>
+  `;
+
+  // シーズン成績
+  html += `<div class="pdf-section"><h3>シーズン成績（全10試合）</h3>`;
+  html += document.querySelector("#seasonBody").parentElement.parentElement.outerHTML;
+  html += `</div>`;
+
+  // タイトル獲得者
+  html += `<div class="pdf-section"><h3>タイトル獲得者</h3>`;
+  html += document.querySelector("#titleWinners").outerHTML;
+  html += `</div>`;
+
+  // 優勝者
+  html += `<div class="pdf-section"><h3>優勝者</h3>`;
+  html += document.querySelector("#championArea").outerHTML;
+  html += `</div>`;
+
+  html += `</body></html>`;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+}
+
+init();
+</script>
+
+</body>
+</html>
