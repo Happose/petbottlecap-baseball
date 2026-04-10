@@ -628,25 +628,7 @@ handle.addEventListener("touchmove", handleTouchMove, { passive:false });
 handle.addEventListener("touchend", handleTouchEnd);
 
 
-    const colorBox = document.createElement("div");
-    colorBox.className = "player-color-box";
-    colorBox.style.background = p.color;
-
-    const colorBtn = document.createElement("button");
-    colorBtn.textContent = "色";
-    colorBtn.className = "small";
-    colorBtn.style.marginLeft = "8px";
-    colorBtn.onclick = ()=> openColorPicker(p.id, li);
-
-    const left = document.createElement("div");
-    left.style.display = "flex";
-    left.style.alignItems = "center";
-
-    const handle = document.createElement("span");
-    handle.className = "handle";
-    handle.textContent = "≡";
-
-    const nameSpan = document.createElement("span");
+        const nameSpan = document.createElement("span");
     nameSpan.textContent = p.name;
     nameSpan.style.marginLeft = "6px";
 
