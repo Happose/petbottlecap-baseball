@@ -680,8 +680,9 @@ function getDragAfterElement(container, y){
 function handleTouchStart(e){
   e.preventDefault();
 
-  // ★ 修正：ハンドル(span)から一番近い .player-item(li) を対象にする
+  // ★ 修正：ハンドル(span) → 親の li をドラッグ対象にする
   touchDraggingEl = e.currentTarget.closest(".player-item");
+
   touchStartY = e.touches[0].clientY;
   currentY = touchStartY;
   isTouchDragging = true;
