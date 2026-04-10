@@ -1219,16 +1219,16 @@ function renderTitleWinners(){
 
   divNormal.innerHTML = `
     <div class="title-winner"><b>安打王：</b> ${names(nHit,"hit","安打")}</div>
-    <div class="title-winner"><b>本塁打王：</b> ${names(nHr,"hr","本")}</div>
-    <div class="title-winner"><b>最多奪三振：</b> ${names(nSo,"pitSo","奪")}</div>
+    <div class="title-winner"><b>本塁打王：</b> ${names(nHr,"hr","本塁打")}</div>
+    <div class="title-winner"><b>最多奪三振：</b> ${names(nSo,"pitSo","奪三振")}</div>
     <div class="title-winner"><b>打率王：</b> ${names(nAvg,"avg","",true)}</div>
     <div class="title-winner"><b>出塁率王：</b> ${names(nObp,"obp","",true)}</div>
   `;
 
   divExtra.innerHTML = `
     <div class="title-winner"><b>延長戦 安打王：</b> ${names(eHit,"hit","安打")}</div>
-    <div class="title-winner"><b>延長戦 本塁打王：</b> ${names(eHr,"hr","本")}</div>
-    <div class="title-winner"><b>延長戦 最多奪三振：</b> ${names(eSo,"pitSo","奪")}</div>
+    <div class="title-winner"><b>延長戦 本塁打王：</b> ${names(eHr,"hr","本塁打")}</div>
+    <div class="title-winner"><b>延長戦 最多奪三振：</b> ${names(eSo,"pitSo","奪三振")}</div>
     <div class="title-winner"><b>延長戦 打率王：</b> ${names(eAvg,"avg","",true)}</div>
     <div class="title-winner"><b>延長戦 出塁率王：</b> ${names(eObp,"obp","",true)}</div>
   `;
