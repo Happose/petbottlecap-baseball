@@ -527,14 +527,6 @@ function addPlayer(){
   renderAll();
 }
 
-function resetData(){
-  if(!confirm("本当に全データをリセットしますか？\nこの操作は元に戻せません。")){
-    return;
-  }
-  localStorage.removeItem(STORAGE_KEY);
-  location.reload();
-}
-
 // プレイヤー順序取得（破壊しない）
 function getPlayersInOrder(){
   return [...state.players].sort((a,b)=>a.order - b.order);
@@ -565,6 +557,7 @@ function enableScroll() {
 
 // ===============================
 // プレイヤーリスト描画（PC + スマホ対応）
+// ===============================
 let playerListEventsInitialized = false;
 
 function renderPlayers(){
@@ -626,9 +619,9 @@ function renderPlayers(){
     handle.addEventListener("touchmove", handleTouchMove, { passive:false });
     handle.addEventListener("touchend", handleTouchEnd);
 
-    // ★ ここを忘れていた：リストに追加
+    // リストに追加
     list.appendChild(li);
-  }); // ★ forEach をここで閉じる
+  });
 
   // PCドラッグイベント（初回のみ）
   if(!playerListEventsInitialized){
@@ -640,6 +633,7 @@ function renderPlayers(){
   renderPitcherSelect();
   renderCurrentBatterBanner();
 }
+
 // PC用ドラッグオーバー
 function handlePlayerListDragOver(e){
   e.preventDefault();
@@ -686,7 +680,8 @@ function getDragAfterElement(container, y){
 function handleTouchStart(e){
   e.preventDefault();
 
-  touchDraggingEl = e.currentTarget;
+  // ★ 修正：ハンドル(span)から一番近い .player-item(li) を対象にする
+  touchDraggingEl = e.currentTarget.closest(".player-item");
   touchStartY = e.touches[0].clientY;
   currentY = touchStartY;
   isTouchDragging = true;
@@ -896,12 +891,9 @@ function recordAtBat(type){
     return;
   }
   if (batterId === pitcherId) {
-  alert("打者と投手が同じ人物です。この打者は手動で飛ばしてください。");
-  // ★ 投手選択を解除しない
-  // ★ state.currentPitcherId も変更しない
-  return;
-}
-
+    alert("打者と投手が同じ人物です。この打者は手動で飛ばしてください。");
+    return;
+  }
 
   const batter = state.players.find(p=>p.id === batterId);
   const pitcher = state.players.find(p=>p.id === pitcherId);
@@ -1472,6 +1464,14 @@ function openFinalPDFView(){
   const win = window.open("", "_blank");
   win.document.write(html);
   win.document.close();
+}
+
+function resetData(){
+  if(!confirm("本当に全データをリセットしますか？\nこの操作は元に戻せません。")){
+    return;
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
 }
 
 function init(){
