@@ -628,21 +628,7 @@ handle.addEventListener("touchmove", handleTouchMove, { passive:false });
 handle.addEventListener("touchend", handleTouchEnd);
 
 
-        const nameSpan = document.createElement("span");
-    nameSpan.textContent = p.name;
-    nameSpan.style.marginLeft = "6px";
-
-    left.appendChild(handle);
-    left.appendChild(colorBox);
-    left.appendChild(nameSpan);
-
-    const right = document.createElement("div");
-    right.appendChild(colorBtn);
-
-    li.appendChild(left);
-    li.appendChild(right);
-    list.appendChild(li);
-  });
+      
 
   // PCドラッグイベント（初回のみ）
   if(!playerListEventsInitialized){
